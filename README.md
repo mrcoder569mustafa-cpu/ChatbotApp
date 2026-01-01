@@ -32,8 +32,7 @@ git clone https://github.com/mrcoder569mustafa-cpu/ChatbotApp.git
 cd ChatbotApp
 
 Live Demo
-
-https://your-vercel-link.vercel.app
+https://chatbot-app-frontend-inky.vercel.app)
 
 Authorized by
 
