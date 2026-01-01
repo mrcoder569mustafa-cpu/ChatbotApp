@@ -14,7 +14,7 @@ export const ChatProvider = ({ children }) => {
   const [createLod, setCreateLod] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // ✅ Gemini response via BACKEND
+  // Gemini response via BACKEND
   const fetchResponse = async () => {
     if (!prompt.trim() || !selected) {
       return toast.error("Type a message and select a chat");
@@ -35,14 +35,16 @@ export const ChatProvider = ({ children }) => {
         // Gemini API ka text extract karna
         const answer = data.candidates[0].content.parts[0].text;
 
-        setMessages((prev) => [...prev, { question, answer }]);
+        // Save conversation to backend
+        const { data } = await axios.post(
+        `${server}/api/chat/${selected}`,
+        { question, answer },
+       { headers: { token: localStorage.getItem("token") } }
+);
 
-        // Save chat conversation
-        await axios.post(
-          `${server}/api/chat/${selected}`,
-          { question, answer },
-          { headers: { token: localStorage.getItem("token") } }
-        );
+// Update messages with full conversation from backend
+setMessages(data.conversation);
+
       } else {
         toast.error("AI response failed");
       }
