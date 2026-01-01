@@ -11,67 +11,40 @@ dotenv.config();
 
 const app = express();
 
+//  Allow only your frontend URL
+const allowedOrigins = [
+  process.env.CLIENT_URL, // put your frontend URL in .env
+  "http://localhost:5173"
+];
+
+app.use(cors({
+  origin: function(origin, callback){
+    if(!origin) return callback(null, true);
+    if(allowedOrigins.indexOf(origin) === -1){
+      const msg = `The CORS policy for this site does not allow access from the specified Origin.`;
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true
+}));
 
 app.use(express.json());
 
-/* ===== Production Level CORS ===== */
-const allowedOrigins = process.env.CLIENT_URL
-  ? process.env.CLIENT_URL.split(",")
-  : [];
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow Postman / server-to-server requests
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        return callback(new Error("CORS not allowed"), false);
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization", "token"],
-  })
-);
-
-/* =======================
-   ROUTES
-======================= */
+// Routes
 app.use("/api/user", userRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/gemini", geminiRoutes);
 
-/* =======================
-   HEALTH CHECK (IMPORTANT)
-======================= */
+// Test route
 app.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message: "Chatbot Backend API is running successfully",
-  });
+  res.json({ success: true, message: "Chatbot Backend API is running successfully" });
 });
 
-/* =======================
-   SERVER START
-======================= */
 const PORT = process.env.PORT || 8000;
-
-connectDb()
-  .then(() => {
-    app.listen(PORT, () =>
-      console.log(` Server running on port ${PORT}`)
-    );
-  })
-  .catch((err) => {
-    console.error(" DB Connection Failed:", err);
-  });
-
 
 connectDb()
   .then(() => {
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   })
-  .catch((err) => console.log(err));
+  .catch(err => console.log(err));
