@@ -6,15 +6,33 @@ import toast from "react-hot-toast";
 const ChatContext = createContext();
 
 export const ChatProvider = ({ children }) => {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([]); // conversation messages
   const [prompt, setPrompt] = useState("");
   const [newRequestLoading, setNewRequestLoading] = useState(false);
-  const [chats, setChats] = useState([]);
-  const [selected, setSelected] = useState(null);
+  const [chats, setChats] = useState([]); // list of chats
+  const [selected, setSelected] = useState(null); // selected chat id
   const [createLod, setCreateLod] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Gemini response via BACKEND
+  // ================== Fetch messages for selected chat ==================
+  const fetchMessages = async () => {
+    if (!selected) return;
+    setLoading(true);
+    try {
+      const { data } = await axios.get(`${server}/api/chat/${selected}`, {
+        headers: { token: localStorage.getItem("token") },
+      });
+      // backend se conversation array milta hai
+      setMessages(data || []);
+    } catch (error) {
+      console.error("FetchMessages Error:", error.response || error.message);
+      toast.error("Failed to fetch messages");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ================== Gemini response via backend ==================
   const fetchResponse = async () => {
     if (!prompt.trim() || !selected) {
       return toast.error("Type a message and select a chat");
@@ -25,26 +43,24 @@ export const ChatProvider = ({ children }) => {
     setPrompt("");
 
     try {
-      // POST request to Gemini backend
-      const { data } = await axios.post(
-        `${server}/api/gemini/chat`, // Updated route
+      // Gemini API request
+      const { data: geminiData } = await axios.post(
+        `${server}/api/gemini/chat`,
         { prompt: question }
       );
 
-      if (data?.candidates?.length > 0) {
-        // Gemini API ka text extract karna
-        const answer = data.candidates[0].content.parts[0].text;
+      if (geminiData?.candidates?.length > 0) {
+        const answer = geminiData.candidates[0].content.parts[0].text;
 
         // Save conversation to backend
-        const { data } = await axios.post(
-        `${server}/api/chat/${selected}`,
-        { question, answer },
-       { headers: { token: localStorage.getItem("token") } }
-);
+        const { data: chatData } = await axios.post(
+          `${server}/api/chat/${selected}`,
+          { question, answer },
+          { headers: { token: localStorage.getItem("token") } }
+        );
 
-// Update messages with full conversation from backend
-setMessages(data.conversation);
-
+        // backend se poora conversation return ho raha
+        setMessages(chatData.conversation);
       } else {
         toast.error("AI response failed");
       }
@@ -56,36 +72,22 @@ setMessages(data.conversation);
     }
   };
 
-  // Fetch all chats
+  // ================== Fetch all chats ==================
   const fetchChats = async () => {
     try {
       const { data } = await axios.get(`${server}/api/chat/all`, {
         headers: { token: localStorage.getItem("token") },
       });
       setChats(data);
+      // agar selected chat nahi hai, pehla chat select karo
       if (!selected && data.length > 0) setSelected(data[0]._id);
     } catch (error) {
       console.error("FetchChats Error:", error.response || error.message);
+      toast.error("Failed to fetch chats");
     }
   };
 
-  // Fetch messages for selected chat
-  const fetchMessages = async () => {
-    if (!selected) return;
-    setLoading(true);
-    try {
-      const { data } = await axios.get(`${server}/api/chat/${selected}`, {
-        headers: { token: localStorage.getItem("token") },
-      });
-      setMessages(data.messages || []);
-    } catch (error) {
-      console.error("FetchMessages Error:", error.response || error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Create new chat
+  // ================== Create new chat ==================
   const createChat = async () => {
     setCreateLod(true);
     try {
@@ -103,25 +105,26 @@ setMessages(data.conversation);
     }
   };
 
-  // Delete chat
+  // ================== Delete chat ==================
   const deleteChat = async (id) => {
     try {
       await axios.delete(`${server}/api/chat/${id}`, {
         headers: { token: localStorage.getItem("token") },
       });
       fetchChats();
+      if (id === selected) setSelected(null); // agar deleted chat selected ho
     } catch (error) {
       console.error("DeleteChat Error:", error.response || error.message);
       toast.error("Failed to delete chat");
     }
   };
 
-  // Auto fetch chats on mount
+  // ================== Auto fetch chats on mount ==================
   useEffect(() => {
     fetchChats();
   }, []);
 
-  // Fetch messages when selected chat changes
+  // ================== Fetch messages when selected chat changes ==================
   useEffect(() => {
     fetchMessages();
   }, [selected]);
