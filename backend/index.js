@@ -13,7 +13,7 @@ const app = express();
 
 //  Allow only your frontend URL
 const allowedOrigins = [
-  process.env.CLIENT_URL, // put your frontend URL in .env
+  process.env.CLIENT_URL, 
   "http://localhost:5173"
 ];
 
