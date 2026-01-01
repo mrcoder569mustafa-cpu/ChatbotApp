@@ -11,24 +11,23 @@ dotenv.config();
 
 const app = express();
 
-//  Allow only your frontend URL
 const allowedOrigins = [
-  process.env.CLIENT_URL, 
+  "https://chatbot-app-frontend-inky.vercel.app",
   "http://localhost:5173"
 ];
 
 app.use(cors({
-  origin: function(origin, callback){
-    if(!origin) return callback(null, true);
-    if(allowedOrigins.indexOf(origin) === -1){
-      const msg = `The CORS policy for this site does not allow access from the specified Origin.`;
-      return callback(new Error(msg), false);
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS blocked"), false);
     }
-    return callback(null, true);
   },
   credentials: true
 }));
-
 app.use(express.json());
 
 // Routes
